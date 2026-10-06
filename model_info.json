@@ -1,0 +1,9 @@
+{
+    "clusters": 2,
+    "silhouette_score": 0.503,
+    "features": [
+        "Age",
+        "Price per Unit",
+        "Total Amount"
+    ]
+}

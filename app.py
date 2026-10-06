@@ -2,7 +2,6 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 import json
 
 # --------------------------------------------------
@@ -151,136 +150,51 @@ with col2:
     st.pyplot(fig)
 
 # --------------------------------------------------
-# GENDER ANALYSIS
-# --------------------------------------------------
-
-st.subheader("👥 Gender Analysis")
-
-col1, col2 = st.columns(2)
-
-with col1:
-
-    gender_count = filtered_df["Gender"].value_counts()
-
-    fig, ax = plt.subplots(figsize=(7, 5))
-
-    gender_count.plot(
-        kind="bar",
-        ax=ax
-    )
-
-    ax.set_title("Transactions by Gender")
-    ax.set_xlabel("Gender")
-    ax.set_ylabel("Number of Transactions")
-
-    st.pyplot(fig)
-
-with col2:
-
-    gender_revenue = filtered_df.groupby(
-        "Gender"
-    )["Total Amount"].sum()
-
-    fig, ax = plt.subplots(figsize=(7, 5))
-
-    gender_revenue.plot(
-        kind="bar",
-        ax=ax
-    )
-
-    ax.set_title("Revenue by Gender")
-    ax.set_xlabel("Gender")
-    ax.set_ylabel("Total Revenue")
-
-    st.pyplot(fig)
-
-# --------------------------------------------------
-# CUSTOMER / TRANSACTION ANALYSIS
-# --------------------------------------------------
-
-st.subheader("📈 Transaction Analysis")
-
-col1, col2 = st.columns(2)
-
-with col1:
-
-    fig, ax = plt.subplots(figsize=(7, 5))
-
-    ax.hist(
-        filtered_df["Age"],
-        bins=20
-    )
-
-    ax.set_title("Age Distribution")
-    ax.set_xlabel("Age")
-    ax.set_ylabel("Number of Transactions")
-
-    st.pyplot(fig)
-
-with col2:
-
-    fig, ax = plt.subplots(figsize=(7, 5))
-
-    ax.hist(
-        filtered_df["Total Amount"],
-        bins=20
-    )
-
-    ax.set_title("Total Transaction Amount Distribution")
-    ax.set_xlabel("Total Amount")
-    ax.set_ylabel("Frequency")
-
-    st.pyplot(fig)
-
-# --------------------------------------------------
-# QUANTITY VS TOTAL AMOUNT
-# --------------------------------------------------
-
-col1, col2 = st.columns(2)
-
-with col1:
-
-    fig, ax = plt.subplots(figsize=(7, 5))
-
-    ax.scatter(
-        filtered_df["Quantity"],
-        filtered_df["Total Amount"],
-        alpha=0.6
-    )
-
-    ax.set_title("Quantity vs Total Amount")
-    ax.set_xlabel("Quantity")
-    ax.set_ylabel("Total Amount")
-
-    st.pyplot(fig)
-
-with col2:
-
-    fig, ax = plt.subplots(figsize=(7, 5))
-
-    ax.scatter(
-        filtered_df["Price per Unit"],
-        filtered_df["Total Amount"],
-        alpha=0.6
-    )
-
-    ax.set_title("Price per Unit vs Total Amount")
-    ax.set_xlabel("Price per Unit")
-    ax.set_ylabel("Total Amount")
-
-    st.pyplot(fig)
-
-# --------------------------------------------------
 # CLUSTER ANALYSIS
 # --------------------------------------------------
 
 st.markdown("---")
-
-st.header("🎯 Cluster Analysis")
+st.header("🎯 K-Means Cluster Analysis")
 
 st.write(
-    "K-Means clustering was performed using Age, "
-    "Price per Unit and Total Amount."
+    "K-Means clustering was performed using Age, Price per Unit "
+    "and Total Amount. The graph below shows how the transactions "
+    "are separated into the two clusters."
+)
+
+# --------------------------------------------------
+# MAIN K-MEANS VISUALIZATION
+# --------------------------------------------------
+
+st.subheader("📈 K-Means Cluster Visualization")
+
+fig, ax = plt.subplots(figsize=(12, 6))
+
+for cluster in sorted(filtered_df["Cluster"].dropna().unique()):
+    cluster_data = filtered_df[
+        filtered_df["Cluster"] == cluster
+    ]
+
+    ax.scatter(
+        cluster_data["Price per Unit"],
+        cluster_data["Total Amount"],
+        alpha=0.65,
+        s=55,
+        label=f"Cluster {int(cluster)}"
+    )
+
+ax.set_title("K-Means Clusters: Price per Unit vs Total Amount")
+ax.set_xlabel("Price per Unit")
+ax.set_ylabel("Total Amount")
+ax.legend(title="Cluster")
+ax.grid(alpha=0.2)
+
+st.pyplot(fig, use_container_width=True)
+plt.close(fig)
+
+st.caption(
+    "Each point represents a retail transaction. Points with the same "
+    "cluster label belong to the same K-Means group."
 )
 
 # --------------------------------------------------
@@ -290,45 +204,30 @@ st.write(
 col1, col2 = st.columns(2)
 
 with col1:
-
     cluster_count = filtered_df["Cluster"].value_counts().sort_index()
 
-    fig, ax = plt.subplots(figsize=(7, 5))
+    fig, ax = plt.subplots(figsize=(6, 4))
+    cluster_count.plot(kind="bar", ax=ax)
 
-    cluster_count.plot(
-        kind="bar",
-        ax=ax
-    )
-
-    ax.set_title("Number of Transactions in Each Cluster")
+    ax.set_title("Transactions in Each Cluster")
     ax.set_xlabel("Cluster")
     ax.set_ylabel("Number of Transactions")
+    plt.xticks(rotation=0)
 
-    st.pyplot(fig)
+    st.pyplot(fig, use_container_width=True)
+    plt.close(fig)
 
 with col2:
+    st.markdown("**Average values for each cluster**")
 
-    fig, ax = plt.subplots(figsize=(7, 5))
+    cluster_summary = filtered_df.groupby("Cluster")[
+        ["Age", "Price per Unit", "Total Amount"]
+    ].mean()
 
-    for cluster in sorted(filtered_df["Cluster"].unique()):
-
-        cluster_data = filtered_df[
-            filtered_df["Cluster"] == cluster
-        ]
-
-        ax.scatter(
-            cluster_data["Price per Unit"],
-            cluster_data["Total Amount"],
-            alpha=0.6,
-            label=f"Cluster {cluster}"
-        )
-
-    ax.set_title("K-Means Cluster Visualization")
-    ax.set_xlabel("Price per Unit")
-    ax.set_ylabel("Total Amount")
-    ax.legend()
-
-    st.pyplot(fig)
+    st.dataframe(
+        cluster_summary.round(2),
+        use_container_width=True
+    )
 
 # --------------------------------------------------
 # CLUSTER SUMMARY
@@ -358,22 +257,6 @@ cluster_category = pd.crosstab(
 
 st.dataframe(
     cluster_category,
-    use_container_width=True
-)
-
-# --------------------------------------------------
-# CLUSTER + GENDER
-# --------------------------------------------------
-
-st.subheader("👥 Gender Distribution by Cluster")
-
-cluster_gender = pd.crosstab(
-    filtered_df["Cluster"],
-    filtered_df["Gender"]
-)
-
-st.dataframe(
-    cluster_gender,
     use_container_width=True
 )
 
